@@ -1,7 +1,12 @@
 {
-    "IsEncrypted": false,
-    "Values": {
-        "AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=guaysinbackend1sa;AccountKey=9AQVjYoKyRepHVOWgpzO0iqpwL3Bwv2hXehbhCo5zLSz1XBjNu0AiQO4AdqlVB3XKJh5VSJIHH4BWA4G/zDPAA==;BlobEndpoint=https://guaysinbackend1sa.blob.core.windows.net/;QueueEndpoint=https://guaysinbackend1sa.queue.core.windows.net/;TableEndpoint=https://guaysinbackend1sa.table.core.windows.net/;FileEndpoint=https://guaysinbackend1sa.file.core.windows.net/;",
-        "AzureWebJobsDashboard": ""
-    }
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=guaysinbackend1sa;AccountKey=9AQVjYoKyRepHVOWgpzO0iqpwL3Bwv2hXehbhCo5zLSz1XBjNu0AiQO4AdqlVB3XKJh5VSJIHH4BWA4G/zDPAA==",
+    "AzureWebJobsDashboard": "DefaultEndpointsProtocol=https;AccountName=guaysinbackend1sa;AccountKey=9AQVjYoKyRepHVOWgpzO0iqpwL3Bwv2hXehbhCo5zLSz1XBjNu0AiQO4AdqlVB3XKJh5VSJIHH4BWA4G/zDPAA==",
+    "FUNCTIONS_EXTENSION_VERSION": "latest",
+    "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING": "DefaultEndpointsProtocol=https;AccountName=guaysinbackend1sa;AccountKey=9AQVjYoKyRepHVOWgpzO0iqpwL3Bwv2hXehbhCo5zLSz1XBjNu0AiQO4AdqlVB3XKJh5VSJIHH4BWA4G/zDPAA==",
+    "WEBSITE_CONTENTSHARE": "guaysinbackend1-content",
+    "WEBSITE_NODE_DEFAULT_VERSION": "6.5.0"
+  },
+  "ConnectionStrings": {}
 }

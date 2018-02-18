@@ -1,0 +1,3 @@
+1) vscode => azure functions create function app in azure
+2) vscode => azure functions create function
+3) CLI => func azure functionapp fetch-app-settings guaysinbackend1 (local.settings.json)
