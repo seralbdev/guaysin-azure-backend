@@ -8,7 +8,7 @@
       "processId": "${command:azureFunctions.pickProcess}"
     },
     {
-      "name": ".NET Core Launch (console)",
+      "name": "Launch function",
       "type": "coreclr",
       "request": "launch",
       //"preLaunchTask": "build",

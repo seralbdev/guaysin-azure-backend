@@ -44,7 +44,8 @@ namespace seralbdev.com
                 //name = name ?? data?.name;
 
                 //var cs = "DefaultEndpointsProtocol=https;AccountName=seralbdevfapp1sa;AccountKey=RDZvYzIzyzGErf/C44aiu43/MkO4a/Z+Vw/DN62/hTEApOYbGakoZnXsWEhp8arp/c44ahNggNVLdC+u8JuwPw==;BlobEndpoint=https://seralbdevfapp1sa.blob.core.windows.net/;QueueEndpoint=https://seralbdevfapp1sa.queue.core.windows.net/;TableEndpoint=https://seralbdevfapp1sa.table.core.windows.net/;FileEndpoint=https://seralbdevfapp1sa.file.core.windows.net/;"; // CloudConfigurationManager.GetSetting("AzureWebJobsStorage");
-                var cs = ConfigurationManager.ConnectionStrings["AzureWebJobsStorage"].ConnectionString;
+                var cs = System.Environment.GetEnvironmentVariable("AzureWebJobsStorage", EnvironmentVariableTarget.Process);
+                //var cs = ConfigurationManager.ConnectionStrings["AzureWebJobsStorage"].ConnectionString;
 
                 log.Info(cs);
 
