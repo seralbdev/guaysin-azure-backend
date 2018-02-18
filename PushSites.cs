@@ -1,4 +1,5 @@
 
+using System;
 using System.IO;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
@@ -7,24 +8,74 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.WebJobs.Host;
 using Newtonsoft.Json;
 
+using Microsoft.Azure;
+using Microsoft.WindowsAzure.Storage;
+using Microsoft.WindowsAzure.Storage.Table;
+using System.Threading.Tasks;
+
+using System.Net.Http;
+using System.Configuration;
+
 namespace seralbdev.com
 {
+    class User : TableEntity
+    {        
+        public User() { }
+
+        public string Email { get; set; }
+        public string Token { get; set; }
+
+        public string MasterS { get; set; }    
+    }
+
     public static class PushSites
     {
         [FunctionName("PushSites")]
-        public static IActionResult Run([HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)]HttpRequest req, TraceWriter log)
+        public static async Task<HttpResponseMessage> Run([HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)]HttpRequestMessage req, TraceWriter log)
         {
-            log.Info("C# HTTP trigger function processed a request.");
+           log.Info("C# HTTP trigger function processed a request.");
+            //string name = req.Query["name"];
 
-            string name = req.Query["name"];
+            try
+            {
 
-            string requestBody = new StreamReader(req.Body).ReadToEnd();
-            dynamic data = JsonConvert.DeserializeObject(requestBody);
-            name = name ?? data?.name;
+                //string requestBody = new StreamReader(req.Body).ReadToEnd();
+                //dynamic data = JsonConvert.DeserializeObject(requestBody);
+                //name = name ?? data?.name;
 
-            return name != null
-                ? (ActionResult)new OkObjectResult($"Hello, {name}")
-                : new BadRequestObjectResult("Please pass a name on the query string or in the request body");
+                //var cs = "DefaultEndpointsProtocol=https;AccountName=seralbdevfapp1sa;AccountKey=RDZvYzIzyzGErf/C44aiu43/MkO4a/Z+Vw/DN62/hTEApOYbGakoZnXsWEhp8arp/c44ahNggNVLdC+u8JuwPw==;BlobEndpoint=https://seralbdevfapp1sa.blob.core.windows.net/;QueueEndpoint=https://seralbdevfapp1sa.queue.core.windows.net/;TableEndpoint=https://seralbdevfapp1sa.table.core.windows.net/;FileEndpoint=https://seralbdevfapp1sa.file.core.windows.net/;"; // CloudConfigurationManager.GetSetting("AzureWebJobsStorage");
+                var cs = ConfigurationManager.ConnectionStrings["AzureWebJobsStorage"].ConnectionString;
+
+                log.Info(cs);
+
+                // Retrieve the storage account from the connection string.
+                CloudStorageAccount storageAccount = CloudStorageAccount.Parse(cs);
+
+                // Create the table client.
+                CloudTableClient tableClient = storageAccount.CreateCloudTableClient();
+
+                // Create the CloudTable object that represents the "people" table.
+                CloudTable table = tableClient.GetTableReference("users");
+
+                log.Info(table.Name);
+
+                //var query = new TableQuery<DynamicTableEntity>();
+                //var result = await table.ExecuteQuerySegmentedAsync(query,null);
+                //log.Info(result.Results.Count.ToString());
+                //var email = result.Results[0].Properties["email"].StringValue;
+                //log.Info(email);
+
+                var query = new TableQuery<User>();
+                var result = await table.ExecuteQuerySegmentedAsync(query,null);
+
+                log.Info(result.Results[0].Email);
+            }
+            catch(Exception ex){
+                log.Error(ex.Message);
+            }
+
+
+            return req.CreateResponse(System.Net.HttpStatusCode.OK);
         }
     }
 }
