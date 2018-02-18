@@ -6,6 +6,18 @@
       "type": "coreclr",
       "request": "attach",
       "processId": "${command:azureFunctions.pickProcess}"
-    }
+    },
+    {
+      "name": ".NET Core Launch (console)",
+      "type": "coreclr",
+      "request": "launch",
+      //"preLaunchTask": "build",
+      "program": "${env:HOME}/.nvm/versions/node/v9.5.0/lib/node_modules/azure-functions-core-tools/bin/Azure.Functions.Cli.dll",
+      "args": [ "host", "start" ],
+      "cwd": "${workspaceRoot}/bin/Debug/netstandard2.0",
+      "console": "internalConsole",
+      "stopAtEntry": false,
+      "internalConsoleOptions": "openOnSessionStart"
+    }    
   ]
 }
