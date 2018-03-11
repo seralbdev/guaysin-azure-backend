@@ -1,5 +1,6 @@
 
 using System;
+using System.Linq;
 using System.IO;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
@@ -18,36 +19,42 @@ using System.Configuration;
 
 namespace seralbdev.com
 {
-    class User : TableEntity
+    class Site : TableEntity
     {        
-        public User() { }
+        public Site() { }
 
-        public string Email { get; set; }
-        public string Token { get; set; }
-
-        public string MasterS { get; set; }    
+        public string SiteName { get; set; }
+        public string SiteUrl { get; set; }
+        public string SiteUser { get; set; }
+        public string SitePassword { get; set; }             
     }
 
     public static class PushSites
     {
+        private const string USER_ID_HEADER = "UserId";
+
         [FunctionName("PushSites")]
-        public static async Task<HttpResponseMessage> Run([HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)]HttpRequestMessage req, TraceWriter log)
+        public static async Task<HttpResponseMessage> Run([HttpTrigger(AuthorizationLevel.Function, "post", Route = null)]HttpRequestMessage req, TraceWriter log)
         {
-           log.Info("C# HTTP trigger function processed a request.");
-            //string name = req.Query["name"];
+           log.Info("Entering PushSites");
 
             try
             {
+                // Find UserId in header
+                if(!req.Headers.Contains(USER_ID_HEADER))
+                    return req.CreateResponse(System.Net.HttpStatusCode.BadRequest);
 
-                //string requestBody = new StreamReader(req.Body).ReadToEnd();
-                //dynamic data = JsonConvert.DeserializeObject(requestBody);
-                //name = name ?? data?.name;
+                var UserId = req.Headers.GetValues(USER_ID_HEADER).First();
 
-                //var cs = "DefaultEndpointsProtocol=https;AccountName=seralbdevfapp1sa;AccountKey=RDZvYzIzyzGErf/C44aiu43/MkO4a/Z+Vw/DN62/hTEApOYbGakoZnXsWEhp8arp/c44ahNggNVLdC+u8JuwPw==;BlobEndpoint=https://seralbdevfapp1sa.blob.core.windows.net/;QueueEndpoint=https://seralbdevfapp1sa.queue.core.windows.net/;TableEndpoint=https://seralbdevfapp1sa.table.core.windows.net/;FileEndpoint=https://seralbdevfapp1sa.file.core.windows.net/;"; // CloudConfigurationManager.GetSetting("AzureWebJobsStorage");
+                //TODO : Validate UserId                
+
+                //Get Site info from JSON payload in body
+                dynamic body = await req.Content.ReadAsStringAsync();                
+                var SiteData = JsonConvert.DeserializeObject<Site>(body as string);
+
+                //Get Table reference
                 var cs = System.Environment.GetEnvironmentVariable("AzureWebJobsStorage", EnvironmentVariableTarget.Process);
                 //var cs = ConfigurationManager.ConnectionStrings["AzureWebJobsStorage"].ConnectionString;
-
-                log.Info(cs);
 
                 // Retrieve the storage account from the connection string.
                 CloudStorageAccount storageAccount = CloudStorageAccount.Parse(cs);
@@ -56,20 +63,17 @@ namespace seralbdev.com
                 CloudTableClient tableClient = storageAccount.CreateCloudTableClient();
 
                 // Create the CloudTable object that represents the "people" table.
-                CloudTable table = tableClient.GetTableReference("users");
+                CloudTable table = tableClient.GetTableReference("sites");
 
-                log.Info(table.Name);
+                SiteData.PartitionKey = UserId;
+                SiteData.RowKey = "0";
 
-                //var query = new TableQuery<DynamicTableEntity>();
-                //var result = await table.ExecuteQuerySegmentedAsync(query,null);
-                //log.Info(result.Results.Count.ToString());
-                //var email = result.Results[0].Properties["email"].StringValue;
-                //log.Info(email);
+                // Create the TableOperation object that inserts the customer entity.
+                TableOperation insertOperation = TableOperation.Insert(SiteData);
 
-                var query = new TableQuery<User>();
-                var result = await table.ExecuteQuerySegmentedAsync(query,null);
+                // Execute the insert operation.
+                await table.ExecuteAsync(insertOperation);                
 
-                log.Info(result.Results[0].Email);
             }
             catch(Exception ex){
                 log.Error(ex.Message);
