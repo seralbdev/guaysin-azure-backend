@@ -57,12 +57,12 @@ namespace seralbdev.com
 
         private static CloudTable GetUsersTable(CloudTableClient tableClient)
         {
-            return tableClient.GetTableReference("users");    
+            return tableClient.GetTableReference("Users");    
         }
 
         private static CloudTable GetSitesTable(CloudTableClient tableClient)
         {
-            return tableClient.GetTableReference("sites");    
+            return tableClient.GetTableReference("Sites");    
         }        
 
         private static async Task<String> GetUserIdFromToken(CloudTable usersTable,String token)
@@ -95,8 +95,14 @@ namespace seralbdev.com
             TableContinuationToken continuationToken = null;
 
             // Create the table query
+            /*TableQuery<Site> query = new TableQuery<Site>().Where(
+                TableQuery.CombineFilters(
+                    TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, userId),
+                    TableOperators.And,
+                    TableQuery.GenerateFilterCondition("RowKey", QueryComparisons.Equal, "0")));*/
+
             TableQuery<Site> query = new TableQuery<Site>().Where(
-                TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, userId));
+                TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, userId));                  
 
             do
             {
@@ -105,7 +111,8 @@ namespace seralbdev.com
                     await sitesTable.ExecuteQuerySegmentedAsync(query, continuationToken);
 
                 //Update list with this segment
-                siteList.AddRange(tableQueryResult.Results);
+                if(tableQueryResult.Results.Count>0)
+                    siteList.AddRange(tableQueryResult.Results);
 
                 // Assign the new continuation token to tell the service where to
                 // continue on the next iteration (or null if it has reached the end).
@@ -113,12 +120,16 @@ namespace seralbdev.com
 
                 // Loop until a null continuation token is received, indicating the end of the table.
             } while(continuationToken != null);
+
       
             return siteList;
         }
 
-        private static async void DeleteSites(CloudTable sitesTable,List<Site> sites)
+        private static async Task DeleteSites(CloudTable sitesTable,List<Site> sites)
         {
+            if(!sites.Any())
+                return;
+                
             //Create the batch operation
             TableBatchOperation batchOperation = new TableBatchOperation();
 
@@ -130,13 +141,13 @@ namespace seralbdev.com
             await sitesTable.ExecuteBatchAsync(batchOperation);
         }
 
-        private static async void DeleteAllSitesFromUser(CloudTable sitesTable,String userId)
+        private static async Task DeleteAllSitesFromUser(CloudTable sitesTable,String userId)
         {
             var userSites = await GetAllUserSites(sitesTable,userId);
-            DeleteSites(sitesTable,userSites);
+            await DeleteSites(sitesTable,userSites);
         }
 
-        private static async void ReplaceUserMasterSecret(CloudTable userTable,String userId,String masterS)
+        private static async Task ReplaceUserMasterSecret(CloudTable userTable,String userId,String masterS)
         {
             var entity = new DynamicTableEntity(userId,"0");
             entity.ETag = "*";
@@ -145,14 +156,20 @@ namespace seralbdev.com
             await userTable.ExecuteAsync(mergeOperation);            
         }
 
-        private static async void InsertSites(CloudTable sitesTable,List<Site> sites)
+        private static async Task InsertSites(CloudTable sitesTable,List<Site> sites,String userId)
         {
             //Create the batch operation
             TableBatchOperation batchOperation = new TableBatchOperation();
 
             //Load each delete operation into the batch
+            int row=0;
             foreach(var site in sites)
+            {
+                site.PartitionKey = userId;
+                site.RowKey = row.ToString();
+                row++;
                 batchOperation.Insert(site);
+            }
 
             //Execute batch
             await sitesTable.ExecuteBatchAsync(batchOperation);            
@@ -191,13 +208,13 @@ namespace seralbdev.com
                     return req.CreateResponse(System.Net.HttpStatusCode.NoContent);
 
                 //InserOrUpdate master secret
-                ReplaceUserMasterSecret(usersTable,userId,masterS);
+                await ReplaceUserMasterSecret(usersTable,userId,masterS);
 
                 //Delete all current user sites
-                DeleteAllSitesFromUser(sitesTable,userId);
+                await DeleteAllSitesFromUser(sitesTable,userId);
 
                 //Insert new list of sites
-                InsertSites(sitesTable,siteList);          
+                await InsertSites(sitesTable,siteList,userId);          
             }
             catch(Exception ex){
                 log.Error(ex.Message);
