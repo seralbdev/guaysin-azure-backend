@@ -221,7 +221,7 @@ namespace seralbdev.com
             }
             catch(Exception ex){
                 log.Error(ex.Message);
-                return req.CreateResponse(System.Net.HttpStatusCode.InternalServerError,ex.Message);
+                return req.CreateResponse(System.Net.HttpStatusCode.InternalServerError);
             }
         }
 
@@ -261,7 +261,7 @@ namespace seralbdev.com
             catch(Exception ex)
             { 
                 log.Error(ex.Message);
-                return req.CreateResponse(System.Net.HttpStatusCode.InternalServerError,ex.Message);
+                return req.CreateResponse(System.Net.HttpStatusCode.InternalServerError);
             }
         }
     }
