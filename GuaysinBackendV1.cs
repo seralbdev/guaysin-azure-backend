@@ -17,6 +17,7 @@ using System.Threading.Tasks;
 using System.Net.Http;
 using System.Configuration;
 using System.Collections.Generic;
+using System.Net.Http.Formatting;
 
 namespace seralbdev.com
 {
@@ -176,9 +177,9 @@ namespace seralbdev.com
         }        
 
         [FunctionName("PushSites")]
-        public static async Task<HttpResponseMessage> Run([HttpTrigger(AuthorizationLevel.Function, "post", Route = null)]HttpRequestMessage req, TraceWriter log)
+        public static async Task<HttpResponseMessage> PushSitesRun([HttpTrigger(AuthorizationLevel.Function, "post", Route = null)]HttpRequestMessage req, TraceWriter log)
         {
-           log.Info("Entering PushSites");
+            log.Info("Entering PushSites");
 
             try
             {
@@ -214,13 +215,55 @@ namespace seralbdev.com
                 await DeleteAllSitesFromUser(sitesTable,userId);
 
                 //Insert new list of sites
-                await InsertSites(sitesTable,siteList,userId);          
+                await InsertSites(sitesTable,siteList,userId);
+                
+                return req.CreateResponse(System.Net.HttpStatusCode.OK);          
             }
             catch(Exception ex){
                 log.Error(ex.Message);
+                return req.CreateResponse(System.Net.HttpStatusCode.InternalServerError,ex.Message);
             }
+        }
 
-            return req.CreateResponse(System.Net.HttpStatusCode.OK);
+        [FunctionName("GetSites")]
+        public static async Task<HttpResponseMessage> GetSitesRun([HttpTrigger(AuthorizationLevel.Function, "get", Route = null)]HttpRequestMessage req, TraceWriter log)
+        {
+            log.Info("Entering PushSites");
+
+            try
+            {
+                // Find UserId & Token in header
+                if(!req.Headers.Contains(HEADER_TOKEN) || !req.Headers.Contains(HEADER_MASTERSECRET))
+                    return req.CreateResponse(System.Net.HttpStatusCode.BadRequest);
+
+                var token = req.Headers.GetValues(HEADER_TOKEN).First();
+                var masterS = req.Headers.GetValues(HEADER_MASTERSECRET).First();
+
+                //Get table references
+                var tableClient = GetTableClient(System.Environment.GetEnvironmentVariable("AzureWebJobsStorage", EnvironmentVariableTarget.Process));
+                var usersTable = GetUsersTable(tableClient);
+                var sitesTable = GetSitesTable(tableClient);
+
+                //Validate Token and get UserId
+                var userId = await GetUserIdFromToken(usersTable,token);
+                if(userId.Equals(String.Empty))
+                    return req.CreateResponse(System.Net.HttpStatusCode.Unauthorized);
+
+                //Get all sites from user
+                var siteList = await GetAllUserSites(sitesTable,userId);  
+                var payload = new StringContent(JsonConvert.SerializeObject(siteList),System.Text.Encoding.UTF8, "application/json");
+                
+                var rsp = req.CreateResponse();
+                rsp.Content = new ObjectContent<List<Site>>(siteList, new JsonMediaTypeFormatter());
+                rsp.StatusCode = System.Net.HttpStatusCode.OK;
+                return rsp;
+            }
+            catch(Exception ex)
+            { 
+                log.Error(ex.Message);
+                return req.CreateResponse(System.Net.HttpStatusCode.InternalServerError,ex.Message);
+            }
         }
     }
+    
 }
