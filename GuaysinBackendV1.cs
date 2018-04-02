@@ -157,6 +157,15 @@ namespace seralbdev.com
             await userTable.ExecuteAsync(mergeOperation);            
         }
 
+        private static async Task<String> GetUserMasterSecret(CloudTable userTable,String userId)
+        {
+            var top = TableOperation.Retrieve(userId,"0");
+            var qresult = await userTable.ExecuteAsync(top);
+            var dynTable = (DynamicTableEntity)qresult.Result;
+            var value = dynTable.Properties["MasterS"];
+            return value.StringValue;
+        }
+
         private static async Task InsertSites(CloudTable sitesTable,List<Site> sites,String userId)
         {
             //Create the batch operation
@@ -233,11 +242,10 @@ namespace seralbdev.com
             try
             {
                 // Find UserId & Token in header
-                if(!req.Headers.Contains(HEADER_TOKEN) || !req.Headers.Contains(HEADER_MASTERSECRET))
+                if(!req.Headers.Contains(HEADER_TOKEN))
                     return req.CreateResponse(System.Net.HttpStatusCode.BadRequest);
 
                 var token = req.Headers.GetValues(HEADER_TOKEN).First();
-                var masterS = req.Headers.GetValues(HEADER_MASTERSECRET).First();
 
                 //Get table references
                 var tableClient = GetTableClient(System.Environment.GetEnvironmentVariable("AzureWebJobsStorage", EnvironmentVariableTarget.Process));
@@ -252,10 +260,14 @@ namespace seralbdev.com
                 //Get all sites from user
                 var siteList = await GetAllUserSites(sitesTable,userId);  
                 var payload = new StringContent(JsonConvert.SerializeObject(siteList),System.Text.Encoding.UTF8, "application/json");
+
+                //Get users Master secret
+                var masters = await GetUserMasterSecret(usersTable,userId);
                 
                 var rsp = req.CreateResponse();
                 rsp.Content = new ObjectContent<List<Site>>(siteList, new JsonMediaTypeFormatter());
                 rsp.StatusCode = System.Net.HttpStatusCode.OK;
+                rsp.Headers.Add("MasterS",masters);
                 return rsp;
             }
             catch(Exception ex)
